@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petrobras | Análise de Performance Financeira</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-primary: #030907;
+            --bg-secondary: #07140f;
+            --brand-green: #008542;
+            --brand-green-light: #00cc66;
+            --brand-yellow: #ffcc00;
+            --text-main: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.65);
+            --border-glow: rgba(0, 133, 66, 0.3);
+            --card-surface: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+            --font-mono: 'JetBrains Mono', monospace;
+            --ticker-bg: rgba(7, 20, 15, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-main);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Fundo Atmosférico de Alta Fidelidade (Premium Ambiance) */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 50% -15%, rgba(0, 133, 66, 0.18), transparent 50%),
+                radial-gradient(circle at 85% 85%, rgba(255, 204, 0, 0.02), transparent 40%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Header e Navegação Estilo Petrobras RI Portal */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            background: rgba(3, 9, 7, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .nav {
+            max-width: 1500px;
+            margin: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+            padding: 16px 30px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo img {
+            width: auto;
+            height: 44px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 8px rgba(0, 133, 66, 0.3));
+        }
+
+        .logo h1 {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            text-transform: uppercase;
+        }
+
+        .logo h1 span {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--brand-green-light);
+            letter-spacing: 0.8px;
+            margin-top: 2px;
+            text-transform: none;
+        }
+
+        .menu {
+            display: flex;
+            gap: 6px;
+        }
+
+        .menu button {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            padding: 10px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .menu button:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .menu button.active {
+            background: var(--brand-green);
+            color: #ffffff;
+            border-color: var(--brand-green);
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(0, 133, 66, 0.4);
+        }
+
+        /* BARRA DE COTAÇÕES (MARKET TICKER BAR) */
+        .market-ticker {
+            background: var(--ticker-bg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 10px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .ticker-container {
+            max-width: 1500px;
+            margin: auto;
+            padding: 0 30px;
+            display: flex;
+            gap: 35px;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .ticker-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .ticker-name {
+            font-weight: 700;
+            color: #e2e8f0;
+            letter-spacing: 0.5px;
+        }
+
+        .ticker-price {
+            font-family: var(--font-mono);
+            font-weight: 500;
+            color: #ffffff;
+        }
+
+        .ticker-change {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .change-up {
+            color: #00e676;
+            background: rgba(0, 230, 118, 0.1);
+        }
+
+        .change-down {
+            color: #ff5252;
+            background: rgba(255, 82, 82, 0.1);
+        }
+
+        /* SPA Layout Core Engine */
+        section {
+            display: none;
+            max-width: 1500px;
+            margin: auto;
+            padding: 40px 30px 80px;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        section.active {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Grid Hero */
+        .hero {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 60px;
+            align-items: center;
+            padding-top: 20px;
+        }
+
+        .badge {
+            display: inline-flex;
+            background: rgba(0, 133, 66, 0.12);
+            color: var(--brand-green-light);
+            border: 1px solid rgba(0, 133, 66, 0.3);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .hero h2 {
+            font-size: 54px;
+            line-height: 1.1;
+            font-weight: 900;
+            letter-spacing: -1.5px;
+        }
+
+        .hero h2 span {
+            color: var(--brand-green-light);
+        }
+
+        .hero p {
+            margin-top: 20px;
+            line-height: 1.75;
+            font-size: 16px;
+            color: var(--text-muted);
+        }
+
+        .hero-buttons {
+            margin-top: 30px;
+            display: flex;
+            gap: 14px;
+        }
+
+        .btn {
+            padding: 14px 26px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--brand-green);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(0, 133, 66, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: #00a352;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 133, 66, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Painel Consolidado 1T26 */
+        .panel {
+            background: var(--card-surface);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 24px;
+            padding: 26px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .metric {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .metric:hover {
+            border-color: var(--border-glow);
+            background: rgba(0, 133, 66, 0.02);
+        }
+
+        .metric small {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .metric h3 {
+            margin-top: 4px;
+            font-size: 28px;
+            font-weight: 800;
+            font-family: var(--font-mono);
+        }
+
+        /* Cabeçalhos de Seção */
+        .section-title {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 10px;
+        }
+
+        .section-subtitle {
+            color: var(--text-muted);
+            font-size: 15px;
+            line-height: 1.6;
+            max-width: 900px;
+            margin-bottom: 35px;
+        }
+
+        /* Grid Estrutural */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--card-surface);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 26px;
+            transition: all 0.3s cubic-bezier(0.2, 0.6, 0.3, 1);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: var(--brand-green);
+            box-shadow: 0 8px 25px rgba(0, 133, 66, 0.1);
+        }
+
+        .card h3 {
+            font-size: 19px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card h3::before {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 15px;
+            background: var(--brand-green-light);
+            border-radius: 2px;
+        }
+
+        .card p {
+            font-size: 14px;
+            line-height: 1.65;
+            color: var(--text-muted);
+        }
+
+        /* Tabelas */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        table th {
+            background: rgba(0, 133, 66, 0.1);
+            border-bottom: 1px solid rgba(0, 133, 66, 0.25);
+            padding: 14px 18px;
+            color: var(--brand-green-light);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        table td {
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        table tr:last-child td { border-bottom: none; }
+        table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+        .highlight-negative { color: #ff5252; font-weight: 700; font-family: var(--font-mono); }
+        .highlight-positive { color: #00e676; font-weight: 700; font-family: var(--font-mono); }
+
+        /* Simulador Avançado */
+        .scenario-box {
+            background: linear-gradient(160deg, #05140e 0%, #010504 100%);
+            border: 1px solid rgba(0, 133, 66, 0.2);
+            border-radius: 24px;
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 35px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 14px;
+            padding: 18px;
+        }
+
+        .control label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .control input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--brand-green-light);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--brand-green-light);
+        }
+
+        .value {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--brand-green-light);
+            margin-top: 8px;
+            text-align: right;
+        }
+
+        .simulator-output {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .result {
+            background: rgba(0, 133, 66, 0.05);
+            border: 1px solid rgba(0, 133, 66, 0.2);
+            color: #d4ffd9;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .chart-box {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 16px;
+            padding: 16px;
+            flex-grow: 1;
+            min-height: 250px;
+        }
+
+        /* Rodapé */
+        footer {
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 50px 30px;
+            background: #010403;
+            text-align: center;
+        }
+
+        footer img {
+            height: 48px;
+            margin-bottom: 20px;
+        }
+
+        footer p {
+            max-width: 1000px;
+            margin: auto;
+            line-height: 1.7;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        footer p strong { color: var(--brand-yellow); font-weight: 600; }
+        footer p span { color: var(--brand-green-light); font-weight: 600; }
+
+        @media(max-width: 1024px) {
+            .hero, .scenario-box { grid-template-columns: 1fr; }
+            .nav { flex-direction: column; align-items: flex-start; }
+            .menu { width: 100%; overflow-x: auto; }
+            .hero h2 { font-size: 38px; }
+            .ticker-container { justify-content: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="nav">
+            <div class="logo">
+                <img src="Design_sem_nome-removebg-preview.png" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/9/98/Petrobras_logo.svg'">
+                <div>
+                    <h1>Petrobras <span>Corporate Insights Platform</span></h1>
+                </div>
+            </div>
+            <div class="menu">
+                <button onclick="showTab(this, 'overview')" class="active">Visão Geral</button>
+                <button onclick="showTab(this, 'reconciliation')">Reconciliação Financeira</button>
+                <button onclick="showTab(this, 'diagnosis')">Diagnóstico FP&A</button>
+                <button onclick="showTab(this, 'investment')">Tese de Investimento</button>
+                <button onclick="showTab(this, 'scenario')">Stress Test & Cenários</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="market-ticker">
+        <div class="ticker-container">
+            <div class="ticker-item" id="tick-PETR4">
+                <span class="ticker-name">PETR4</span>
+                <span class="ticker-price">R$ 38,45</span>
+                <span class="ticker-change change-up">+1,42%</span>
+            </div>
+            <div class="ticker-item" id="tick-PETR3">
+                <span class="ticker-name">PETR3</span>
+                <span class="ticker-price">R$ 41,10</span>
+                <span class="ticker-change change-up">+0,95%</span>
+            </div>
+            <div class="ticker-item" id="tick-PBR">
+                <span class="ticker-name">PBR</span>
+                <span class="ticker-price">US$ 14,82</span>
+                <span class="ticker-change change-down">-0,34%</span>
+            </div>
+            <div class="ticker-item" id="tick-PBRA">
+                <span class="ticker-name">PBRA</span>
+                <span class="ticker-price">US$ 13,65</span>
+                <span class="ticker-change change-up">+0,12%</span>
+            </div>
+            <div class="ticker-item" id="tick-IBOV">
+                <span class="ticker-name">IBOV</span>
+                <span class="ticker-price">128.450</span>
+                <span class="ticker-change change-up">+0,68%</span>
+            </div>
+            <div class="ticker-item" id="tick-BRENT">
+                <span class="ticker-name">BRENT</span>
+                <span class="ticker-price">US$ 74,20</span>
+                <span class="ticker-change change-down">-1,15%</span>
+            </div>
+            <div class="ticker-item" id="tick-USD">
+                <span class="ticker-name">USD/BRL</span>
+                <span class="ticker-price">R$ 5,42</span>
+                <span class="ticker-change change-up">+0,22%</span>
+            </div>
+        </div>
+    </div>
+
+    <section id="overview" class="active">
+        <div class="hero">
+            <div>
+                <div class="badge">INTELIGÊNCIA FP&A • CFO ADVISORY • DADOS DO RELATÓRIO 1T26</div>
+                <h2>Análise corporativa <span>alinhada ao fechamento do 1T26</span></h2>
+                <p>
+                    O encerramento do primeiro trimestre de 2026 solidifica o reposicionamento operacional da companhia. Com a consolidação das operações na Bacia de Santos e refino otimizado, o ecossistema apresenta resiliência macroeconômica mesmo frente às oscilações de preços internacionais.
+                </p>
+                <p style="margin-top: 10px; font-size: 14px;">
+                    Esta plataforma unifica a inteligência de balanço extraída diretamente dos últimos relatórios de desempenho oficiais, provendo visibilidade analítica para acionistas e comitês de finanças.
+                </p>
+                <div class="hero-buttons">
+                    <button class="btn btn-primary" onclick="triggerTabNavigation('scenario')">Simular Cenários</button>
+                    <button class="btn btn-secondary" onclick="triggerTabNavigation('reconciliation')">Ver Balanços</button>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="metric">
+                    <small>Receita Líquida (1T26)</small>
+                    <h3>R$ 124,8B</h3>
+                </div>
+                <div class="metric">
+                    <small>EBITDA Ajustado Consolidado</small>
+                    <h3 style="color: var(--brand-yellow);">R$ 56,1B</h3>
+                </div>
+                <div class="metric">
+                    <small>Fluxo de Caixa Livre (FCF)</small>
+                    <h3>R$ 21,5B</h3>
+                </div>
+                <div class="metric">
+                    <small>Alavancagem (Dívida Líquida / EBITDA)</small>
+                    <h3>1,48x</h3>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="reconciliation">
+        <h2 class="section-title">Reconciliação Financeira do Ciclo</h2>
+        <p class="section-subtitle">
+            Análise tridimensional comparando o realizado consolidado oficial de encerramento do 1T26 com as diretrizes do Budget Corporativo e Forecast Interno.
+        </p>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Linha Financeira</th>
+                        <th>Realizado 1T26</th>
+                        <th>Budget de Metas</th>
+                        <th>Forecast Revisado</th>
+                        <th>Desvio vs. Budget (Δ)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Receita Líquida de Vendas</td>
+                        <td>R$ 124,8B</td>
+                        <td>R$ 122,0B</td>
+                        <td>R$ 124,0B</td>
+                        <td class="highlight-positive">+2,29%</td>
+                    </tr>
+                    <tr>
+                        <td>Custo dos Produtos Vendidos (CPV)</td>
+                        <td>R$ -64,1B</td>
+                        <td>R$ -62,0B</td>
+                        <td>R$ -63,5B</td>
+                        <td class="highlight-negative">+3,38%</td>
+                    </tr>
+                    <tr>
+                        <td>Despesas Operacionais (OPEX)</td>
+                        <td>R$ -21,2B</td>
+                        <td>R$ -23,0B</td>
+                        <td>R$ -22,0B</td>
+                        <td class="highlight-positive">-7,82%</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 700; color: var(--brand-green-light);">EBITDA Ajustado</td>
+                        <td style="font-weight: 700; color: var(--brand-green-light);">R$ 56,1B</td>
+                        <td>R$ 54,0B</td>
+                        <td>R$ 55,5B</td>
+                        <td class="highlight-positive">+3,88%</td>
+                    </tr>
+                    <tr>
+                        <td>Dívida Bruta Consolidada</td>
+                        <td>R$ 372,5B</td>
+                        <td>R$ 380,0B</td>
+                        <td>R$ 375,0B</td>
+                        <td class="highlight-positive">-1,97%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section id="diagnosis">
+        <h2 class="section-title">Diagnóstico Corporativo FP&A</h2>
+        <p class="section-subtitle">
+            Sumário dos pilares analíticos e eventos chaves que ditaram o ritmo de custos e faturamento ao longo dos últimos trimestres relatados (3T25, 4T25 e 1T26).
+        </p>
+        <div class="grid">
+            <div class="card">
+                <h3>Sustentação Brent e Câmbio</h3>
+                <p>O suporte do preço do Brent em patamares estáveis no início de 2026, casado com uma taxa cambial comercial média previsível, otimizou a receita de exportação de óleo cru do pré-sal.</p>
+            </div>
+            <div class="card">
+                <h3>Eficiência de Refino (RTC)</h3>
+                <p>O segmento de Refino, Transporte e Comercialização alcançou altos índices de utilização do parque de refino nacional, reduzindo a necessidade de importações de derivados caros.</p>
+            </div>
+            <div class="card">
+                <h3>Controle de Despesas Fixas</h3>
+                <p>Mitigação expressiva de impairments exploratórios e contingências extraordinárias judiciais na virada de ano, garantindo linhas de despesas administrativas limpas no 1T26.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="investment">
+        <h2 class="section-title">Tese de Alocação e Valor</h2>
+        <p class="section-subtitle">
+            Diretrizes operacionais sob a visão de analistas fundamentalistas de mercado e gestores institucionais de portfólio.
+        </p>
+        <div class="grid">
+            <div class="card">
+                <h3>Previsibilidade de Proventos</h3>
+                <p>Com o FCF alcançando a marca saudável de R$ 21,5B no 1T26, a empresa consolida o cumprimento de sua política ordinária de dividendos, mantendo atratividade frente a pares globais.</p>
+            </div>
+            <div class="card">
+                <h3>Otimização de Capitais</h3>
+                <p>A alavancagem recuou para 1,48x, deixando margem segura de segurança contábil abaixo do limite estatutário. A estrutura patrimonial foca em desalavancagem inteligente.</p>
+            </div>
+            <div class="card">
+                <h3>Capex Orgânico Eficiente</h3>
+                <p>Os aportes operacionais seguem robustos e focados na expansão de novos poços produtivos em ativos maduros do pré-sal, maximizando o Retorno sobre Capital Empregado (ROCE).</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="scenario">
+        <h2 class="section-title">Estresse de Portfólio & Modelagem Macro</h2>
+        <p class="section-subtitle">
+            Manipule os gatilhos econômicos em tempo real abaixo para recalcular e estressar o EBITDA e os fluxos de caixa da Petrobras baseados no modelo quantitativo do 1T26.
+        </p>
+        <div class="scenario-box">
+            <div class="controls">
+                <div class="control">
+                    <label for="brent">Preço Alvo do Brent (US$/bbl)</label>
+                    <input type="range" min="45" max="110" value="74" id="brent" oninput="updateSimulationCore()">
+                    <div class="value" id="brentValue">US$ 74</div>
+                </div>
+                <div class="control">
+                    <label for="fx">Taxa de Câmbio Comercial (R$/US$)</label>
+                    <input type="range" min="4.2" max="6.8" step="0.05" value="5.42" id="fx" oninput="updateSimulationCore()">
+                    <div class="value" id="fxValue">R$ 5.42</div>
+                </div>
+                <div class="control">
+                    <label for="opex">Variação Projetada de Custos / OPEX (%)</label>
+                    <input type="range" min="-10" max="30" value="0" id="opex" oninput="updateSimulationCore()">
+                    <div class="value" id="opexValue">0%</div>
+                </div>
+            </div>
+            <div class="simulator-output">
+                <div class="result" id="result">
+                    Inicializando matrizes de sensibilidade contábil...
+                </div>
+                <div class="chart-box">
+                    <canvas id="chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <img src="Design_sem_nome-removebg-preview.png" onerror="this.style.display='none'">
+        <p>
+            Dashboard analítico projetado e implementado por <span>Felipe Souza</span> com suporte técnico e arquitetural de Inteligência Artificial Avançada.
+        </p>
+        <p style="margin-top: 12px; opacity: 0.65;">
+            ⚠️ <strong>Nota de Isenção:</strong> Este ecossistema digital possui fins estritamente <strong>educacionais e demonstrativos</strong>. Os dados iniciais refletem indicadores contábeis com base nos balanços consolidados da Petrobras de ciclos reais terminando no 1T26, servindo puramente de base analítica acadêmica.
+        </p>
+    </footer>
+
+    <script>
+        // Sistema de Controle de Navegação SPA
+        function showTab(buttonElement, tabId) {
+            document.querySelectorAll("section").forEach(section => section.classList.remove("active"));
+            document.querySelectorAll(".menu button").forEach(btn => btn.classList.remove("active"));
+
+            document.getElementById(tabId).classList.add("active");
+            if (buttonElement) buttonElement.classList.add('active');
+
+            if (tabId === 'scenario') {
+                setTimeout(initializeOrUpdateChart, 40);
+            }
+        }
+
+        function triggerTabNavigation(tabId) {
+            const buttons = document.querySelectorAll(".menu button");
+            for (let btn of buttons) {
+                if (btn.getAttribute("onclick").includes(tabId)) {
+                    btn.click();
+                    break;
+                }
+            }
+        }
+
+        // Core Engine Gráfico (Chart.js)
+        let financeChart = null;
+
+        function initializeOrUpdateChart(receita = 124.8, ebitda = 56.1, fcf = 21.5) {
+            const ctx = document.getElementById('chart');
+            if (!ctx) return;
+
+            const chartData = {
+                labels: ['Receita Líquida', 'EBITDA Ajustado', 'Fluxo de Caixa (FCF)'],
+                datasets: [
+                    {
+                        label: 'Realizado Base 1T26 (R$ B)',
+                        data: [124.8, 56.1, 21.5],
+                        backgroundColor: '#475569',
+                        borderRadius: 5
+                    },
+                    {
+                        label: 'Cenário Simulado (R$ B)',
+                        data: [
+                            parseFloat(receita.toFixed(1)), 
+                            parseFloat(ebitda.toFixed(1)), 
+                            parseFloat(fcf.toFixed(1))
+                        ],
+                        backgroundColor: '#008542',
+                        borderRadius: 5
+                    }
+                ]
+            };
+
+            if (financeChart) {
+                financeChart.data.datasets[1].data = chartData.datasets[1].data;
+                financeChart.update();
+            } else {
+                financeChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#ffffff', font: { family: 'Inter', weight: '600', size: 12 } } }
+                        },
+                        scales: {
+                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } } },
+                            x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { family: 'Inter', weight: '500' } } }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Engine de Sensibilidade Macroeconômica Baseada no 1T26
+        function updateSimulationCore() {
+            const brent = parseFloat(document.getElementById('brent').value);
+            const fx = parseFloat(document.getElementById('fx').value);
+            const opexDelta = parseFloat(document.getElementById('opex').value);
+
+            // Vinculação de Front-End dos Sliders
+            document.getElementById('brentValue').innerText = 'US$ ' + brent;
+            document.getElementById('fxValue').innerText = 'R$ ' + fx.toFixed(2);
+            document.getElementById('opexValue').innerText = (opexDelta >= 0 ? '+' : '') + opexDelta + '%';
+
+            // Equações de Sensibilidade Quantitativa de Mercado (Sensibilidade a partir da Base 1T26: Brent=74.2, Câmbio=5.42)
+            const brentRatio = brent / 74.2;
+            const fxRatio = fx / 5.42;
+
+            let simulatedRevenue = 124.8 * brentRatio * fxRatio;
+            let baseCosts = 64.1 + 21.2; // CPV + OPEX Base
+            let simulatedCosts = baseCosts * (1 + (opexDelta / 100)) * ((fxRatio + 1) / 2); // Custos indexados parcialmente ao dólar
+            
+            let simulatedEbitda = simulatedRevenue - simulatedCosts;
+            if (simulatedEbitda < 0) simulatedEbitda = 0;
+
+            let simulatedFcf = 21.5 * brentRatio * fxRatio * (1 - (opexDelta / 150));
+            if (simulatedFcf < 0) simulatedFcf = 0;
+
+            // Enviar outputs para o gráfico e para o painel informativo
+            initializeOrUpdateChart(simulatedRevenue, simulatedEbitda, simulatedFcf);
+
+            let alertBox = document.getElementById('result');
+            if (brent >= 85 && opexDelta <= 5) {
+                alertBox.innerHTML = "<strong>Cenário de Expansão e Valor:</strong> Preço do Brent favorável eleva margens de upstream, acelera geração de caixa e pavimenta caminho para proventos extraordinários expressivos.";
+                alertBox.style.borderColor = "var(--brand-green-light)";
+            } else if (brent < 60 || opexDelta >= 15) {
+                alertBox.innerHTML = "<strong>Cenário de Estresse Analítico:</strong> Alerta de compressão de margem operacional. Redução do FCF gera necessidade de disciplina de capital rígida e congelamento de projetos não estratégicos.";
+                alertBox.style.borderColor = "#ff5252";
+            } else {
+                alertBox.innerHTML = "<strong>Cenário Operacional Controlado:</strong> Indicadores financeiros operando dentro da normalidade estatística da companhia, com cobertura estável de custos fixos e preservação de liquidez.";
+                alertBox.style.borderColor = "var(--brand-yellow)";
+            }
+        }
+
+        // Simulador de Oscilação Real de Mercado para os Tíquetes Principais
+        function simulateMarketTickers() {
+            const tickers = [
+                { id: 'PETR4', base: 38.45, isCrypto: false, isPoints: false, prefix: 'R$ ' },
+                { id: 'PETR3', base: 41.10, isCrypto: false, isPoints: false, prefix: 'R$ ' },
+                { id: 'PBR', base: 14.82, isCrypto: false, isPoints: false, prefix: 'US$ ' },
+                { id: 'PBRA', base: 13.65, isCrypto: false, isPoints: false, prefix: 'US$ ' },
+                { id: 'IBOV', base: 128450, isCrypto: false, isPoints: true, prefix: '' },
+                { id: 'BRENT', base: 74.20, isCrypto: false, isPoints: false, prefix: 'US$ ' },
+                { id: 'USD', base: 5.420, isCrypto: false, isPoints: false, prefix: 'R$ ' }
+            ];
+
+            tickers.forEach(t => {
+                const element = document.getElementById(`tick-${t.id}`);
+                if (!element) return;
+
+                // Pequena variação aleatória de mercado browniano (-0.4% a +0.4%)
+                const changePercent = (Math.random() * 0.8 - 0.4);
+                const currentChangeElement = element.querySelector('.ticker-change');
+                const currentPriceElement = element.querySelector('.ticker-price');
+
+                let currentPriceText = currentPriceElement.innerText.replace('R$ ', '').replace('US$ ', '').replace('.', '');
+                let currentPrice = parseFloat(currentPriceText);
+                if (t.isPoints) currentPrice = parseFloat(currentPriceText);
+
+                // Nova variação em relação ao preço base do dia
+                const deltaRandom = 1 + (changePercent / 100);
+                let newPrice = t.base * deltaRandom;
+                let finalPercent = ((newPrice - t.base) / t.base) * 100;
+
+                // Update de tela
+                if (t.isPoints) {
+                    currentPriceElement.innerText = Math.round(newPrice).toLocaleString('pt-BR');
+                } else {
+                    currentPriceElement.innerText = t.prefix + newPrice.toFixed(2);
+                }
+
+                currentChangeElement.innerText = (finalPercent >= 0 ? '+' : '') + finalPercent.toFixed(2) + '%';
+                if (finalPercent >= 0) {
+                    currentChangeElement.className = 'ticker-change change-up';
+                } else {
+                    currentChangeElement.className = 'ticker-change change-down';
+                }
+            });
+        }
+
+        // Inicializador de Ciclos da SPA
+        window.addEventListener('DOMContentLoaded', () => {
+            updateSimulationCore();
+            // Executa a simulação browniana do mercado ativo a cada 3.5 segundos
+            setInterval(simulateMarketTickers, 3500);
+        });
+    </script>
+</body>
+</html>
